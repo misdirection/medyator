@@ -6,8 +6,10 @@ import pytest
 from src.medyator import Medyator
 from src.contracts import Query, Command
 from src.request_handler import QueryHandler, CommandHandler
-import src.kink
+
 from kink import di
+import src.kink # for extension of Container
+
 @pytest.fixture
 def test_query():
     class TestQuery(Query):
