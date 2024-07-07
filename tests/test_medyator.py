@@ -3,12 +3,12 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pytest
-from src.medyator import Medyator
-from src.contracts import Query, Command
-from src.request_handler import QueryHandler, CommandHandler
+from medyator.medyator import Medyator
+from medyator.contracts import Query, Command
+from medyator.request_handler import QueryHandler, CommandHandler
 
 from kink import di
-import src.kink  # for extension of Container
+import medyator.kink  # for extension of Container
 
 
 @pytest.fixture
