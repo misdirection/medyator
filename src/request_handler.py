@@ -1,16 +1,16 @@
 from typing import Generic, TypeVar
-from .request import Request, RequestWithResponse
+from .contracts import Query, Command
 
-TRequest = TypeVar("TRequest", bound=Request)
+TCommand = TypeVar("TCommand", bound=Command)
+TQuery = TypeVar("TQuery", bound=Query)
 TResponse = TypeVar("TResponse")
-TRequestWithResponse = TypeVar("TRequestWithResponse", bound=RequestWithResponse)
 
 
-class RequestHandler(Generic[TRequest]):
-    def __call__(self, request: TRequest) -> None:
+class CommandHandler(Generic[TCommand]):
+    def __call__(self, request: TCommand) -> None:
         raise NotImplementedError
 
 
-class RequestHandlerWithResponse(Generic[TRequestWithResponse, TResponse]):
-    def __call__(self, request: TRequestWithResponse) -> TResponse:
+class QueryHandler(Generic[TQuery, TResponse]):
+    def __call__(self, request: TQuery) -> TResponse:
         raise NotImplementedError

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .request import BaseRequest
+from .contracts import BaseRequest
 
 
 class RequestAlreadyRegistered(Exception):
@@ -11,5 +11,5 @@ class RequestAlreadyRegistered(Exception):
 
 class HandlerNotFound(Exception):
     @classmethod
-    def for_command(cls, request: BaseRequest) -> HandlerNotFound:
+    def for_request(cls, request: BaseRequest) -> HandlerNotFound:
         return cls(f"No handler has been found for {request}!")
