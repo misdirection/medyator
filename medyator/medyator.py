@@ -33,7 +33,7 @@ class Medyator(MedyatorBase):
         self.__service_provider = service_provider
         self.__handlers = HandlerContainer()
 
-    def sendCommand(self, request: Command) -> None:
+    def send_command(self, request: Command) -> None:
         try:
             handler = cast(
                 CommandHandlerWrapper,
@@ -43,7 +43,7 @@ class Medyator(MedyatorBase):
         except KeyError:
             raise HandlerNotFound.for_request(request)
 
-    def sendQuery(self, request: Query[TResponse]) -> TResponse:
+    def send_query(self, request: Query[TResponse]) -> TResponse:
         try:
             handler = cast(
                 QueryHandlerWrapper,
