@@ -8,6 +8,7 @@ from ..request_handler import CommandHandler, QueryHandler
 
 Handler = Union[CommandHandler, QueryHandler]
 
+
 class KinkServiceProvider(ServiceProvider):
     def __init__(self, di: Container) -> None:
         self.di = di
@@ -24,5 +25,6 @@ class KinkServiceProvider(ServiceProvider):
 def add_medyator(self) -> None:
     medyator = Medyator(KinkServiceProvider(self))
     self[Medyator] = medyator
+
 
 setattr(Container, "add_medyator", add_medyator)
