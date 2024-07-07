@@ -1,3 +1,3 @@
-from .kink_service_provider import KinkServiceProvider
+from .kink_service_provider import add_medyator
 
-__all__ = ["KinkServiceProvider"]
+__all__ = ["add_medyator"]

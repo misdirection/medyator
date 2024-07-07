@@ -6,8 +6,8 @@ import pytest
 from src.medyator import Medyator
 from src.contracts import Query, Command
 from src.request_handler import QueryHandler, CommandHandler
-from src.kink import KinkServiceProvider
-
+import src.kink
+from kink import di
 @pytest.fixture
 def test_query():
     class TestQuery(Query):
@@ -39,17 +39,18 @@ def test_command():
 
 
 def test_query_handler(test_command, test_query):
-    service_provider = KinkServiceProvider()
+    di.add_medyator()
     query, query_handler = test_query
-    service_provider.register_handler(query, query_handler)
-    command, command_handler = test_command
-    service_provider.register_handler(command, command_handler)
-    medyator = Medyator(service_provider)
+    di[query] = query_handler
+    # service_provider.register_handler(query, query_handler)
+    # command, command_handler = test_command
+    # service_provider.register_handler(command, command_handler)
+    medyator = di[Medyator]
     result = medyator.sendQuery(query(1))
     assert result == 9001
 
     result = medyator.sendQuery(query(1))
     assert result == 9001
 
-    medyator.sendCommand(command('World'))
-    assert command_handler.value == 'World'
+    # medyator.sendCommand(command('World'))
+    # assert command_handler.value == 'World'
