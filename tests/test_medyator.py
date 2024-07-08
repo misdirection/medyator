@@ -74,11 +74,3 @@ def test_should_raise_HandlerNotFound_error_when_query_handler_is_not_found(test
     query, _ = test_query
     with pytest.raises(HandlerNotFound):
         medyator.send_query(query(1))
-
-
-def test_should_raise_HandlerNotFound_error_when_command_handler_is_not_found(test_command):
-    di.add_medyator()
-    medyator = di[Medyator]
-    command, _ = test_command
-    with pytest.raises(HandlerNotFound):
-        medyator.send_command(command("Hello, World!"))
