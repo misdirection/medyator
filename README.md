@@ -16,8 +16,7 @@ pip install medyator kink
 
 ## How to use
 
-Import medyator, kink and medytor.kink to use kink di as serviceprovider.
-Container.add_medyator() adds medyator to the di container and registers the container as the service provider for medyator.
+Container.add_medyator() from the medyator.kink module connects medyator with kink as the serviceprovider.
 
 ```python
 from medyator import Medyator
@@ -30,7 +29,7 @@ medyator.send_command(AddAddressCommand("test"))
 
 ```
 
-Look at the test for more examples.
+Look at the tests for more examples.
 
 ## Planned Features
 

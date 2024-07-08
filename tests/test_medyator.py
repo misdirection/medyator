@@ -40,19 +40,17 @@ def test_command():
     return TestCommand, TestCommandHandler()
 
 
-def test_query_handler(test_command, test_query):
+def test_query_handler(test_query):
+
     di.add_medyator()
     query, query_handler = test_query
     di[query] = query_handler
-    # service_provider.register_handler(query, query_handler)
-    # command, command_handler = test_command
-    # service_provider.register_handler(command, command_handler)
     medyator = di[Medyator]
-    result = medyator.sendQuery(query(1))
+
+    # should get handler from serviceprovider (di container)
+    result = medyator.send_query(query(1))
     assert result == 9001
 
-    result = medyator.sendQuery(query(1))
+    # should get handler from medyator container
+    result = medyator.send_query(query(1))
     assert result == 9001
-
-    # medyator.sendCommand(command('World'))
-    # assert command_handler.value == 'World'
