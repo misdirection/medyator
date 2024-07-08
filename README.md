@@ -1,9 +1,9 @@
 # Medyator
 [![PyPI version](https://badge.fury.io/py/Medyator.svg)](https://badge.fury.io/py/Medyator)
 
-In-process messaging in python.
+In-process messaging in Python.
 
-Currently supports Commands and Queries using kink di.
+Currently supports commands and queries using kink di.
 
 
 ## Installation
