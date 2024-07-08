@@ -47,3 +47,7 @@ If you have any feedback, please reach out to us at misdirection@live.de
 ## Acknowledgements
 
  - [this project is heavily inspired by: Mediatr](https://github.com/jbogard/MediatR)
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for more details.
