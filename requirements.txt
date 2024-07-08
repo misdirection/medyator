@@ -1,1 +1,1 @@
--r requirements-dev.txt
+kink==0.8.0

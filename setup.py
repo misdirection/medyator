@@ -15,8 +15,8 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.12",
-    install_requires=["typing-extensions", "kink"],
+    python_requires=">=3.8",
+    install_requires=["kink"],
     tests_require=[
         "pytest",
     ],
