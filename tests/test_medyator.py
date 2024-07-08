@@ -1,13 +1,8 @@
-import os
-import sys
-
-from medyator.errors import HandlerNotFound
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import pytest
 from medyator.medyator import Medyator
 from medyator.contracts import Query, Command
 from medyator.request_handler import QueryHandler, CommandHandler
+from medyator.errors import HandlerNotFound
 
 from kink import di, inject
 import medyator.kink  # for extension of Container
