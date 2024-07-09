@@ -1,5 +1,6 @@
 # Medyator
-[![PyPI version](https://badge.fury.io/py/Medyator.svg)](https://badge.fury.io/py/Medyator)
+[![PyPI version](https://badge.fury.io/py/Medyator.svg)](https://badge.fury.io/py/Medyator) ![Mediator tests](https://github.com/misdirection/medyator/actions/workflows/python-app.yml/badge.svg)
+
 
 In-process messaging in Python.
 
