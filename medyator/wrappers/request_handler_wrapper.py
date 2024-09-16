@@ -16,13 +16,16 @@ class RequestHandlerBase(Protocol):
 
 
 class QueryHandlerWrapper(RequestHandlerBase, Generic[TResponse]):
-    def __call__(self, request: Query[TResponse], service_provider: ServiceProvider) -> TResponse:
+    def __call__(
+        self, request: Query[TResponse], service_provider: ServiceProvider
+    ) -> TResponse:
         raise NotImplementedError
 
 
 class QueryHandlerWrapperImpl(QueryHandlerWrapper, Generic[TQuery, TResponse]):
-    def __call__(self, request: Query[TResponse], service_provider: ServiceProvider) -> TResponse:
-
+    def __call__(
+        self, request: Query[TResponse], service_provider: ServiceProvider
+    ) -> TResponse:
         handler = cast(QueryHandler, service_provider.get(request))
         return handler(request)
 

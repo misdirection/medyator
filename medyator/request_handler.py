@@ -1,5 +1,6 @@
 from typing import Generic, TypeVar
-from .contracts import Query, Command
+
+from .contracts import Command, Query
 
 TCommand = TypeVar("TCommand", bound=Command)
 TQuery = TypeVar("TQuery", bound=Query)

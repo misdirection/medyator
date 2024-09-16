@@ -1,16 +1,16 @@
 from abc import ABC
-from typing import Any, Callable, Dict, Type, TypeVar, Union, cast
+from typing import Callable, Dict, Type, TypeVar, Union, cast, overload
 
-from .contracts import BaseRequest, Query, Command, ServiceProvider
+from .contracts import BaseRequest, Command, Query, ServiceProvider
 from .errors import HandlerNotFound
-from .request_handler import QueryHandler, CommandHandler
+from .request_handler import CommandHandler, QueryHandler
 from .sender import Sender
 from .wrappers import (
-    RequestHandlerBase,
-    QueryHandlerWrapper,
-    QueryHandlerWrapperImpl,
     CommandHandlerWrapper,
     CommandHandlerWrapperImpl,
+    QueryHandlerWrapper,
+    QueryHandlerWrapperImpl,
+    RequestHandlerBase,
 )
 
 Handler = Union[QueryHandler, CommandHandler]
@@ -22,7 +22,9 @@ class MedyatorBase(Sender, ABC):
 
 
 class HandlerContainer(Dict[Type[BaseRequest], RequestHandlerBase]):
-    def get_or_add(self, key: Type[BaseRequest], factory: Callable) -> RequestHandlerBase:
+    def get_or_add(
+        self, key: Type[BaseRequest], factory: Callable[[], RequestHandlerBase]
+    ) -> RequestHandlerBase:
         if key not in self:
             self[key] = factory()
         return self[key]
@@ -33,23 +35,35 @@ class Medyator(MedyatorBase):
         self.__service_provider = service_provider
         self.__handlers = HandlerContainer()
 
-    def send_command(self, request: Command) -> None:
+    @overload
+    def send(self, request: Command) -> None: ...
+
+    @overload
+    def send(self, request: Query[TResponse]) -> TResponse: ...
+
+    def send(self, request: Union[Command, Query[TResponse]]) -> Union[None, TResponse]:
         try:
-            handler = cast(
-                CommandHandlerWrapper,
-                self.__handlers.get_or_add(type(request), lambda: CommandHandlerWrapperImpl[type(request)]()),
-            )
-            return handler(request, self.__service_provider)
+            if isinstance(request, Command):
+                handler = cast(
+                    CommandHandlerWrapper,
+                    self.__handlers.get_or_add(
+                        type(request),
+                        lambda: CommandHandlerWrapperImpl[type(request)](),
+                    ),
+                )
+                handler(request, self.__service_provider)
+                return None
+            elif isinstance(request, Query):
+                handler = cast(
+                    QueryHandlerWrapper[TResponse],
+                    self.__handlers.get_or_add(
+                        type(request),
+                        lambda: QueryHandlerWrapperImpl[type(request), TResponse](),
+                    ),
+                )
+                return handler(request, self.__service_provider)
+            else:
+                raise TypeError("Unsupported request type")
         except KeyError:
             raise HandlerNotFound.for_request(request)
 
-    def send_query(self, request: Query[TResponse]) -> TResponse:
-        try:
-            handler = cast(
-                QueryHandlerWrapper,
-                self.__handlers.get_or_add(type(request), lambda: QueryHandlerWrapperImpl[type(request), TResponse]()),
-            )
-
-            return handler(request, self.__service_provider)
-        except KeyError:
-            raise HandlerNotFound.for_request(request)

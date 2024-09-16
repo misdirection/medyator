@@ -1,9 +1,9 @@
-import types
-from kink import Container
 from typing import Union, cast
 
+from kink import Container
+
+from ..contracts import BaseRequest, Command, Query, ServiceProvider
 from ..medyator import Medyator
-from ..contracts import ServiceProvider, BaseRequest, Command, Query
 from ..request_handler import CommandHandler, QueryHandler
 
 Handler = Union[CommandHandler, QueryHandler]

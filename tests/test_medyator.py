@@ -2,14 +2,13 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import medyator.kink  # for extension of Container  # noqa: F401
 import pytest
-from medyator import Medyator
-from medyator.errors import HandlerNotFound
-from medyator.contracts import Query, Command
-from medyator.request_handler import QueryHandler, CommandHandler
-
 from kink import di, inject
-import medyator.kink  # for extension of Container
+from medyator import Medyator
+from medyator.contracts import Command, Query
+from medyator.errors import HandlerNotFound
+from medyator.request_handler import CommandHandler, QueryHandler
 
 
 @pytest.fixture
@@ -49,11 +48,11 @@ def test_query_should_execute_query_handler_twice_and_return_same_value(test_que
     medyator = di[Medyator]
 
     # should get handler from serviceprovider (di container)
-    result = medyator.send_query(query(1))
+    result = medyator.send(query(1))
     assert result == 9001
 
     # should get handler from medyator container
-    result = medyator.send_query(query(1))
+    result = medyator.send(query(1))
     assert result == 9001
 
 
@@ -62,7 +61,7 @@ def test_should_execute_command_handler_and_set_the_value(test_command):
     command, _ = test_command
     medyator = di[Medyator]
 
-    medyator.send_command(command("Hello, World!"))
+    medyator.send(command("Hello, World!"))
     handler = di[command]
     assert handler.value == "Hello, World!"
 
@@ -72,4 +71,4 @@ def test_should_raise_HandlerNotFound_error_when_query_handler_is_not_found(test
     medyator = di[Medyator]
     query, _ = test_query
     with pytest.raises(HandlerNotFound):
-        medyator.send_query(query(1))
+        medyator.send(query(1))

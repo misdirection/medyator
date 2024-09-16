@@ -1,7 +1,8 @@
 from abc import ABC
 from typing import Generic, TypeVar
 
-TResponse = TypeVar('TResponse')
+TResponse = TypeVar("TResponse")
+
 
 class BaseRequest(ABC):
     pass
