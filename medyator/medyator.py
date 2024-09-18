@@ -1,3 +1,4 @@
+# medyator.py
 from abc import ABC
 from typing import Callable, Dict, Type, TypeVar, Union, cast, overload
 
@@ -36,12 +37,14 @@ class Medyator(MedyatorBase):
         self.__handlers = HandlerContainer()
 
     @overload
-    def send(self, request: Command) -> None: ...
+    async def send(self, request: Command) -> None: ...
 
     @overload
-    def send(self, request: Query[TResponse]) -> TResponse: ...
+    async def send(self, request: Query[TResponse]) -> TResponse: ...
 
-    def send(self, request: Union[Command, Query[TResponse]]) -> Union[None, TResponse]:
+    async def send(
+        self, request: Union[Command, Query[TResponse]]
+    ) -> Union[None, TResponse]:
         try:
             if isinstance(request, Command):
                 handler = cast(
@@ -51,7 +54,7 @@ class Medyator(MedyatorBase):
                         lambda: CommandHandlerWrapperImpl[type(request)](),
                     ),
                 )
-                handler(request, self.__service_provider)
+                await handler(request, self.__service_provider)
                 return None
             elif isinstance(request, Query):
                 handler = cast(
@@ -61,7 +64,7 @@ class Medyator(MedyatorBase):
                         lambda: QueryHandlerWrapperImpl[type(request), TResponse](),
                     ),
                 )
-                return handler(request, self.__service_provider)
+                return await handler(request, self.__service_provider)
             else:
                 raise TypeError("Unsupported request type")
         except KeyError:
