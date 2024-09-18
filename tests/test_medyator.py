@@ -18,7 +18,7 @@ def test_query():
             self.value = value
 
     class TestQueryHandler(QueryHandler[TestQuery, int]):
-        def __call__(self, request: TestQuery) -> int:
+        async def __call__(self, request: TestQuery) -> int:
             return request.value + 9000
 
     return TestQuery, TestQueryHandler()
@@ -35,40 +35,48 @@ def test_command():
         def __init__(self) -> None:
             self.value = None
 
-        def __call__(self, request: TestCommand) -> None:
+        async def __call__(self, request: TestCommand) -> None:
             self.value = request.value
 
     return TestCommand, TestCommandHandler()
 
 
-def test_query_should_execute_query_handler_twice_and_return_same_value(test_query):
+@pytest.mark.asyncio
+async def test_query_should_execute_query_handler_twice_and_return_same_value(
+    test_query,
+):
     di.add_medyator()
     query, query_handler = test_query
     di[query] = query_handler
     medyator = di[Medyator]
 
-    # should get handler from serviceprovider (di container)
-    result = medyator.send(query(1))
+    # Should get handler from service provider (di container)
+    result = await medyator.send(query(1))
     assert result == 9001
 
-    # should get handler from medyator container
-    result = medyator.send(query(1))
+    # Should get handler from medyator container
+    result = await medyator.send(query(1))
     assert result == 9001
 
 
-def test_should_execute_command_handler_and_set_the_value(test_command):
+@pytest.mark.asyncio
+async def test_should_execute_command_handler_and_set_the_value(test_command):
     di.add_medyator()
     command, _ = test_command
     medyator = di[Medyator]
 
-    medyator.send(command("Hello, World!"))
+    await medyator.send(command("Hello, World!"))
     handler = di[command]
     assert handler.value == "Hello, World!"
 
 
-def test_should_raise_HandlerNotFound_error_when_query_handler_is_not_found(test_query):
+@pytest.mark.asyncio
+async def test_should_raise_HandlerNotFound_error_when_query_handler_is_not_found(
+    test_query,
+):
     di.add_medyator()
     medyator = di[Medyator]
     query, _ = test_query
     with pytest.raises(HandlerNotFound):
-        medyator.send(query(1))
+        await medyator.send(query(1))
+
