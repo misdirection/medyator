@@ -1,0 +1,21 @@
+The following features are present in the .NET MediatR library but are currently missing from the Python port (`medyator`), based on analysis of both libraries and the Python port's README:
+
+1.  **Asynchronous Operations:**
+    *   **.NET MediatR:** Provides comprehensive support for `async` and `await` throughout its request handling, notification, and pipeline processes.
+    *   **Python `medyator`:** Currently synchronous. "Async" is listed as a "planned" feature in its README.
+
+2.  **Notifications (Events):**
+    *   **.NET MediatR:** Supports `INotification` and `INotificationHandler<TNotification>`, enabling a publish/subscribe pattern where multiple handlers can react to a single notification.
+    *   **Python `medyator`:** Does not have a notification system. "Notifications" is listed as a "planned" feature. It currently focuses on single-handler request/response (commands/queries).
+
+3.  **Pipelines/Behaviors:**
+    *   **.NET MediatR:** Features `IPipelineBehavior<TRequest, TResponse>` (and pre/post processors) allowing for the creation of reusable cross-cutting concerns (logging, validation, caching, etc.) that form a processing pipeline around requests.
+    *   **Python `medyator`:** Lacks this pipeline behavior system. "Pipelines" is listed as a "planned" feature.
+
+4.  **Streaming Requests:**
+    *   **.NET MediatR:** Supports `IStreamRequest` and `IStreamRequestHandler` for scenarios where a request yields a stream of responses (e.g., `IAsyncEnumerable<TResponse>`).
+    *   **Python `medyator`:** No current implementation or mention of streaming request capabilities.
+
+5.  **Advanced Request Exception Handling Abstractions:**
+    *   **.NET MediatR:** Offers specialized interfaces like `IRequestExceptionHandler<TRequest, TResponse, TException>` and `IRequestExceptionAction<TRequest, TException>` for fine-grained control over exception handling within the request lifecycle.
+    *   **Python `medyator`:** While it can raise errors like `HandlerNotFound`, it does not provide the same extensible abstractions for building dedicated exception handling components within the mediation pipeline. Users would rely on standard Python try-except blocks around the `send` call.

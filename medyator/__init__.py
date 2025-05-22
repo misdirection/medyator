@@ -10,4 +10,22 @@ __all__ = [
     "CommandHandler",
     "HandlerNotFound",
     "Medyator",
+    "HandlerRegistry",
+    "default_handler_registry",
+    "command_handler",
+    "query_handler",
+    # Async contracts & handlers
+    "AsyncCommand",
+    "AsyncQuery",
+    "AsyncCommandHandler",
+    "AsyncQueryHandler",
 ]
+
+from .registration import (
+    HandlerRegistry,
+    default_handler_registry,
+    command_handler,
+    query_handler,
+)
+from .contracts import AsyncCommand, AsyncQuery # Added
+from .request_handler import AsyncCommandHandler, AsyncQueryHandler # Added

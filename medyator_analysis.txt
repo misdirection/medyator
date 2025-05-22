@@ -1,0 +1,48 @@
+## Medyator Python Port Analysis
+
+**Core Capabilities:**
+
+*   **In-Process Messaging:** `medyator` facilitates communication between components within the same Python application process, avoiding direct, hard-coded dependencies between them.
+*   **Command Handling:**
+    *   Defines `Command` objects (inheriting from `medyator.contracts.Command`) to represent actions that modify system state or perform operations without a direct return value.
+    *   Requires `CommandHandler` classes (implementing `medyator.request_handler.CommandHandler`) with a `__call__` method to process these commands.
+    *   The `Medyator.send(command: Command)` method dispatches the command to its registered handler and returns `None`.
+*   **Query Handling:**
+    *   Defines `Query` objects (inheriting from `medyator.contracts.Query[TResponse]`, where `TResponse` is the expected return type) to represent requests for data.
+    *   Requires `QueryHandler` classes (implementing `medyator.request_handler.QueryHandler[TQuery, TResponse]`) with a `__call__` method that processes the query and returns a value of type `TResponse`.
+    *   The `Medyator.send(query: Query[TResponse])` method dispatches the query to its handler and returns the result.
+*   **Shared Request Abstraction:** Both `Command` and `Query` types inherit from `medyator.contracts.BaseRequest`, providing a common base for all messages.
+
+**Dependency Injection (DI) Integration with `kink`:**
+
+*   **`kink` as Service Provider:** `medyator` relies on a service provider pattern to resolve handlers for commands and queries. It includes a specific integration for the `kink` DI library.
+*   **`KinkServiceProvider`:** The `medyator.kink.kink_service_provider.KinkServiceProvider` class acts as a bridge between `medyator` and the `kink` DI container. It uses the `kink` container (typically `kink.di`) to locate and provide instances of registered handlers.
+*   **`Container.add_medyator()` Extension:** The `medyator.kink` module enhances the `kink.Container` by adding an `add_medyator()` method. When `di.add_medyator()` is called:
+    1.  It creates an instance of `Medyator`, configured to use `KinkServiceProvider(di)`.
+    2.  It registers this `Medyator` instance within the `kink` container itself (e.g., `di[Medyator] = medyator_instance`), making `Medyator` itself injectable into other services.
+*   **Handler Registration with `kink`:**
+    *   Handlers (both `CommandHandler` and `QueryHandler`) are registered with the `kink` DI container.
+    *   The tests demonstrate registering query handlers directly (e.g., `di[MyQuery] = MyQueryHandler()`) and command handlers using `kink`'s `@inject(alias=MyCommand)` decorator, which allows `kink` to manage the handler's instantiation and its own dependencies.
+*   **Handler Resolution Process:**
+    1.  When `Medyator.send()` is invoked, `medyator` first checks an internal cache (`__handlers`) for a pre-resolved wrapper for the given request type.
+    2.  If not cached, it creates a request-specific wrapper (`CommandHandlerWrapperImpl` or `QueryHandlerWrapperImpl`).
+    3.  This wrapper, upon its first invocation for a request instance, uses the configured `ServiceProvider` (i.e., `KinkServiceProvider`) to retrieve the actual handler instance from the `kink` DI container.
+    4.  The retrieved handler is then executed with the request. Subsequent calls for the same request *type* reuse the cached wrapper, which in turn reuses the initially resolved handler instance (unless the DI container provides transient instances).
+
+**Key Implementation Aspects (`medyator/medyator.py`):**
+
+*   **`Medyator` Class:** The central component that receives requests and dispatches them. It maintains a cache of handler wrappers to optimize handler resolution.
+*   **Handler Wrappers:** Internal classes (`CommandHandlerWrapperImpl`, `QueryHandlerWrapperImpl`) encapsulate the logic of obtaining a handler from the service provider and invoking it. This decouples the core `Medyator` logic from the specifics of the DI container.
+*   **Error Handling:** Raises a `HandlerNotFound` exception if a handler cannot be resolved for a given request.
+
+**Current Limitations & Planned Features (from `README.md`):**
+
+The Python port `medyator` currently lacks several features present in the .NET MediatR library. These are explicitly mentioned as "planned":
+
+*   **Async Support:** Asynchronous request and handler execution (e.g., using `async/await`) is not yet implemented.
+*   **Notifications (Events):** The ability to publish a notification (event) to multiple handlers is not yet available.
+*   **Pipelines (Behaviors):** A mechanism for creating pipelines of behaviors (cross-cutting concerns like logging, validation, transaction management that wrap request handling) is not yet implemented.
+
+**Conclusion:**
+
+The `medyator` library provides a functional Python implementation of the core mediator pattern, focusing on synchronous command and query dispatching. Its integration with the `kink` dependency injection library is a key aspect, allowing for clean handler registration and resolution. While it successfully captures the fundamental request/response mechanism of MediatR, it is still under development with significant features like asynchronous operations, notifications, and processing pipelines planned for future releases.Okay, I've analyzed the `medyator` Python port and saved the analysis to `medyator_analysis.txt`. Now I'll submit the report.

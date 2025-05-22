@@ -1,0 +1,232 @@
+## Suggestions for Improving the `medyator` Python Port
+
+This document provides recommendations for enhancing the `medyator` library, focusing on dependency injection (DI) practices, handler registration, and the implementation of planned features.
+
+**1. Aligning Dependency Injection (DI) Registration with Standard Practices**
+
+The current DI registration pattern (using request types as keys for handler instances, e.g., `di[RequestType] = handler_instance`) and the monkey-patching of `kink.Container` can be improved for better clarity, maintainability, and adherence to common DI principles.
+
+*   **Recommendation 1.1: Handler Registration by Handler Type**
+    *   **Current:** `di[MyQuery] = MyQueryHandler()` or `@inject(alias=MyCommand)` for command handlers.
+    *   **Suggestion:** Register handlers against their actual (often generic) handler types. This makes the DI container's role more explicit in managing the lifecycle and dependencies of the handlers themselves.
+        ```python
+        from kink import di
+        from medyator.contracts import CommandHandler, QueryHandler # Assuming these are base types
+        from medyator import Medyator
+
+        # For a query: MyQuery -> int
+        # di[QueryHandler[MyQuery, int]] = MyQueryHandler() # if kink supports this directly
+        # Or, if generic type hints are tricky for kink's keys, use a more specific abstraction
+        # or register the concrete handler and let KinkServiceProvider be smarter.
+
+        # A potentially more kink-friendly way if direct generic type keys are an issue:
+        di[MyQueryHandler] = MyQueryHandler() # Register the handler by its concrete type
+        # Then KinkServiceProvider would need to know how to map MyQuery to MyQueryHandler.
+        # This mapping could be established via decorators or explicit registration (see section 2).
+
+        # For a command: MyCommand
+        di[MyCommandHandler] = MyCommandHandler()
+        ```
+    *   The `KinkServiceProvider` would then be responsible for resolving `QueryHandler[ActualQueryType, ActualResponseType]` or `CommandHandler[ActualCommandType]`. This might require `kink` to support resolving generic types or the `KinkServiceProvider` to have a way to look up the concrete handler type associated with a request type (see handler discovery).
+
+*   **Recommendation 1.2: Explicit Configuration for `medyator` in `kink`**
+    *   **Current:** `setattr(Container, "add_medyator", add_medyator)` (monkey-patching).
+    *   **Suggestion:** Provide an explicit setup function to integrate `medyator` with a `kink` container instance. This is cleaner, avoids modifying external library code, and prevents potential conflicts.
+        ```python
+        # In medyator.kink module
+        def configure_medyator_for_kink(container: Container):
+            service_provider = KinkServiceProvider(container) # KinkServiceProvider might need updates
+            medyator_instance = Medyator(service_provider)
+            container[Medyator] = medyator_instance
+            # Any other medyator-specific services or configurations.
+
+        # In application setup:
+        from kink import di
+        from medyator.kink import configure_medyator_for_kink
+
+        configure_medyator_for_kink(di)
+        medyator = di[Medyator]
+        ```
+
+*   **Recommendation 1.3: Refine `KinkServiceProvider` for Standard Handler Resolution**
+    *   The `KinkServiceProvider.get(request)` method currently uses `type(request)` as the key. If handlers are registered by their own types (e.g., `MyQueryHandler`), `KinkServiceProvider` will need a way to determine which handler type corresponds to `type(request)`. This is where handler registration mechanisms (Section 2) become crucial. It might query `kink` for `QueryHandler[type(request), Any]` or a pre-registered mapping.
+
+*   **Recommendation 1.4: Improve Handler Instance Caching in Wrappers**
+    *   As noted in `medyator_issues.txt`, the handler wrappers (`CommandHandlerWrapperImpl`, `QueryHandlerWrapperImpl`) should cache the handler instance after resolving it from the `ServiceProvider` for the first time. This avoids repeated DI lookups on every `send` call and makes the `Medyator`'s internal caching more effective.
+    ```python
+    # Conceptual change in CommandHandlerWrapperImpl
+    class CommandHandlerWrapperImpl(CommandHandlerWrapper[TCommand]):
+        def __init__(self):
+            self._handler_instance = None # Cache for the actual handler
+
+        def __call__(self, command: TCommand, service_provider: ServiceProvider):
+            if self._handler_instance is None:
+                # Resolve from DI and cache it
+                self._handler_instance = service_provider.get(command) # 'get' might need refinement
+            self._handler_instance(command)
+    ```
+
+**2. Improving Handler Discovery and Registration Mechanisms**
+
+Clear and flexible handler registration is key to usability.
+
+*   **Recommendation 2.1: Decorator-Based Registration**
+    *   Python's decorators are excellent for this. A decorator could mark a class as a handler for a specific request type and potentially register it with a global or passed-in registry, or make it easier for `KinkServiceProvider` to discover.
+        ```python
+        from medyator import handler_registry # A hypothetical registry
+
+        @handler_registry.handles(MyQuery)
+        class MyQueryHandler(QueryHandler[MyQuery, int]):
+            def __call__(self, request: MyQuery) -> int:
+                return request.value + 1
+
+        # The KinkServiceProvider could then consult this registry,
+        # or the registry could directly populate the kink container.
+        # For kink, the decorator might look like:
+
+        from kink import di
+
+        def query_handler(query_type: Type[Query]):
+            def decorator(handler_class: Type[QueryHandler]):
+                # Register the handler with kink, associated with the query_type
+                # This still needs a way for KinkServiceProvider to find it.
+                # Option A: Register handler by its own type, decorator stores mapping.
+                di[handler_class] = handler_class() # Or let kink manage lifestyle
+                handler_registry.register_mapping(query_type, handler_class)
+                return handler_class
+            return decorator
+
+        @query_handler(MyQuery)
+        class MyQueryHandler(QueryHandler[MyQuery, int]): ...
+
+        # KinkServiceProvider would use handler_registry.get_handler_type_for_query(type(request))
+        # and then request that type from kink.
+        ```
+
+*   **Recommendation 2.2: Explicit Registration Calls**
+    *   Allow users to explicitly register handlers with the `Medyator` setup or a dedicated registry.
+        ```python
+        # During setup, after configure_medyator_for_kink(di)
+        medyator_registry = di[HandlerRegistry] # If HandlerRegistry is a service
+        medyator_registry.register_handler(MyQuery, MyQueryHandler)
+        # or
+        # di.add_medyator_handler(MyQuery, MyQueryHandler) # if extending kink more directly
+        ```
+
+*   **Recommendation 2.3: Assembly/Module Scanning (Advanced)**
+    *   For larger applications, provide a utility to scan specified modules or assemblies (Python packages) for classes that implement handler interfaces or are decorated, and automatically register them. This is common in .NET MediatR (`RegisterServicesFromAssembly`).
+
+**3. Implementing Planned Features in a Pythonic Way**
+
+*   **Recommendation 3.1: Asynchronous Support (`async`/`await`)**
+    *   **Contracts:** Define `AsyncCommand`, `AsyncQuery`, `AsyncCommandHandler`, `AsyncQueryHandler`.
+        ```python
+        class AsyncCommand(Command): ...
+
+        class AsyncQuery(Query[TResponse]): ...
+
+        class AsyncCommandHandler(Generic[TCommand]):
+            async def __call__(self, request: TCommand) -> None: ... # Note: async def
+
+        class AsyncQueryHandler(Generic[TQuery, TResponse]):
+            async def __call__(self, request: TQuery) -> TResponse: ... # Note: async def
+        ```
+    *   **Medyator `send` method:** Should be `async def send(...)` and use `await` when calling handlers. It will need to distinguish between sync and async handlers/requests or have separate `send_async` methods.
+    *   **Service Provider:** `KinkServiceProvider.get` would need to be able to retrieve async handlers. If an async handler is resolved, `Medyator` should `await` its `__call__` method.
+    *   **Concurrency:** Consider if `async` handlers should run concurrently when multiple requests are sent (likely depends on the calling code using `asyncio.gather` or similar).
+
+*   **Recommendation 3.2: Notifications (Events)**
+    *   **Contracts:**
+        ```python
+        class Notification(BaseRequest): # Can inherit from BaseRequest or be separate
+            pass
+
+        class NotificationHandler(Generic[TNotification]):
+            async def __call__(self, notification: TNotification) -> None: # Often async
+                raise NotImplementedError
+            # Or a sync version: def __call__(...)
+        ```
+    *   **Publisher Service:** Introduce an `IPublisher` interface (similar to .NET MediatR) and a `Publisher` implementation, likely managed by DI.
+        ```python
+        class Publisher:
+            def __init__(self, service_provider: ServiceProvider):
+                self.__service_provider = service_provider
+
+            async def publish(self, notification: Notification) -> None:
+                # 1. Discover all handlers for type(notification)
+                #    This requires KinkServiceProvider to support resolving multiple handlers
+                #    for a given type (e.g., kink's support for `di.retrieve_all_of(Type)` if available,
+                #    or a registry that maps one notification type to many handler types).
+                handler_types = self.__service_provider.get_all_handlers_for(type(notification))
+                
+                tasks = []
+                for handler_type in handler_types:
+                    handler_instance = self.__service_provider.get_specific_handler(handler_type) # Get individual handler
+                    if asyncio.iscoroutinefunction(handler_instance.__call__):
+                        tasks.append(handler_instance(notification))
+                    else:
+                        handler_instance(notification) # For sync handlers, run directly
+                
+                await asyncio.gather(*[t for t in tasks if asyncio.iscoroutine(t)])
+        ```
+    *   **`Medyator` Integration:** `Medyator` could also implement `IPublisher` or have a dedicated `publish` method.
+    *   **Handler Registration:** The DI container (`kink`) needs to support registration of multiple handlers for the same notification type. This might involve registering a list of handler types against a notification type key, or `kink` having a feature to resolve all implementations of a given generic type.
+
+*   **Recommendation 3.3: Pipelines (Behaviors/Middleware)**
+    *   **Concept:** Allow custom code to wrap around the execution of request handlers, similar to middleware in web frameworks.
+    *   **Contracts:**
+        ```python
+        from typing import Awaitable, Callable
+
+        NextHandlerDelegate = Callable[[], Awaitable[TResponse]] # For async pipelines
+
+        class PipelineBehavior(Generic[TRequest, TResponse]): # TRequest can be Query or Command
+            async def handle(
+                self, request: TRequest, next_handler: NextHandlerDelegate[TResponse]
+            ) -> TResponse:
+                # Code before next handler
+                print(f"Processing {type(request).__name__} before handler")
+                response = await next_handler()
+                # Code after next handler
+                print(f"Processing {type(request).__name__} after handler")
+                return response
+        ```
+    *   **Registration:** Pipeline behaviors would be registered with the DI container, possibly as a list for a given request type or globally.
+        `di.add_scoped(PipelineBehavior[MyRequest, MyResponse], MySpecificBehavior())`
+        `di.add_scoped(GlobalPipelineBehavior)`
+    *   **Execution in `Medyator.send`:**
+        The `send` method would need to be significantly refactored. When a request is sent, `Medyator` would:
+        1.  Resolve all applicable `PipelineBehavior` instances for the request.
+        2.  Chain them together: each behavior calls the `next` one, with the actual request handler at the end of the chain.
+        This is a complex change. The core idea is that each behavior's `handle` method receives the request and a delegate (`next_handler`) to call the next behavior in the pipeline (or the actual request handler).
+        ```python
+        # Simplified conceptual flow in Medyator.send for a single request
+        # actual_handler_call = lambda: actual_handler(request)
+        #
+        # pipeline_behaviors = service_provider.get_pipeline_behaviors_for(type(request))
+        #
+        # def build_pipeline(behaviors, final_delegate):
+        #    if not behaviors:
+        #        return final_delegate
+        #    current_behavior = behaviors[0]
+        #    remaining_behaviors = behaviors[1:]
+        #    
+        #    # Bind the current_behavior's 'next' to the rest of the pipeline
+        #    next_fn = lambda: build_pipeline(remaining_behaviors, final_delegate)
+        #    return lambda: current_behavior.handle(request, next_fn)
+        #
+        # if pipeline_behaviors:
+        #    pipeline_entry = build_pipeline(pipeline_behaviors, actual_handler_call)
+        #    return await pipeline_entry()
+        # else:
+        #    return await actual_handler_call()
+        ```
+    *   **Pythonic Implementation:** Python's context managers (`with` statement) or decorators could offer alternative, perhaps more Pythonic ways to achieve some aspects of pipeline behavior for simpler use cases, but for a full MediatR-style pipeline, the delegate-chaining approach is common.
+
+**4. General Advice**
+
+*   **Type Hinting:** Continue and expand the use of Python's type hinting. It's crucial for a library like this to help developers understand contracts and expected types.
+*   **Documentation and Examples:** As features are added or changed, provide clear documentation and practical examples for each use case, especially for DI setup and feature usage.
+*   **Testing:** Maintain high test coverage for all features and configurations.
+
+By considering these recommendations, `medyator` can become a more robust, user-friendly, and feature-rich library for in-process messaging in Python, aligning well with both Pythonic idioms and the proven patterns from its .NET inspiration.

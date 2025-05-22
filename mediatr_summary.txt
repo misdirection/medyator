@@ -1,0 +1,12 @@
+MediatR is a simple, lightweight, and unambitious mediator implementation in .NET that enables in-process messaging with no external dependencies. Its core features include:
+
+*   **Request/Response, Commands, and Queries:** Facilitates sending a request (which can be a command to change state or a query to retrieve data) to a single handler that returns a response.
+*   **Notifications (Events):** Allows publishing messages (notifications or events) to multiple handlers in a decoupled manner.
+*   **Synchronous and Asynchronous Processing:** Supports both synchronous and asynchronous message handling.
+*   **Generic Variance for Dispatching:** Leverages C# generic variance for intelligent and efficient routing of messages to their corresponding handlers.
+*   **Dependency Injection:** Integrates seamlessly with `Microsoft.Extensions.DependencyInjection.Abstractions` for registering services, handlers, behaviors, and processors.
+*   **Pipeline Behaviors:** Implements a pipeline model allowing for cross-cutting concerns (e.g., logging, validation, caching) to be applied to requests and notifications by intercepting them.
+*   **Request Pre-Processing and Post-Processing:** Enables the execution of custom logic before a request handler is called and after it completes.
+*   **Stream Requests:** Supports scenarios where a single request can produce a stream of multiple responses over time.
+*   **Exception Handling:** Offers extension points for managing exceptions that occur during the processing of requests.
+*   **Contracts-Only Package (`MediatR.Contracts`):** Provides a separate package containing only the message contract interfaces (IRequest, INotification, IStreamRequest). This is beneficial for defining contracts in projects separate from their handler implementations, such as in API layers, gRPC services, or Blazor applications.

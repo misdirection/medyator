@@ -14,3 +14,14 @@ class Command(BaseRequest):
 
 class Query(Generic[TResponse], BaseRequest):
     pass
+
+
+# Async contracts
+class AsyncCommand(Command):
+    """Base class for asynchronous commands."""
+    pass
+
+
+class AsyncQuery(Query[TResponse], Generic[TResponse]):
+    """Base class for asynchronous queries that return a value of type TResponse."""
+    pass

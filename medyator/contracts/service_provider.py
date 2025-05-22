@@ -1,10 +1,21 @@
-from typing import Protocol, Union
-from ..request_handler import CommandHandler, QueryHandler
+from typing import Protocol, Union, Type, Any
+from ..request_handler import (
+    CommandHandler,
+    QueryHandler,
+    AsyncCommandHandler,
+    AsyncQueryHandler,
+)
 from .request import BaseRequest
 
-Handler = Union[CommandHandler, QueryHandler]
+# Represents any handler type (sync or async, command or query)
+Handler = Union[
+    CommandHandler[Any],
+    QueryHandler[Any, Any],
+    AsyncCommandHandler[Any],
+    AsyncQueryHandler[Any, Any],
+]
 
 
 class ServiceProvider(Protocol):
-    def get(self, request: BaseRequest) -> Handler:
+    def get(self, request_type: Type[BaseRequest]) -> Handler:
         raise NotImplementedError
