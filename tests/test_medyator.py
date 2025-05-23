@@ -8,18 +8,14 @@ from kink import di, inject
 import asyncio # Added for potential use in async handlers
 from medyator import Medyator
 from medyator.contracts import (
-    AsyncCommand,
-    AsyncQuery,
     Command,
     Query,
-)
+) # Removed AsyncCommand, AsyncQuery
 from medyator.errors import HandlerNotFound
 from medyator.request_handler import (
-    AsyncCommandHandler,
-    AsyncQueryHandler,
     CommandHandler,
     QueryHandler,
-)
+) # Removed AsyncCommandHandler, AsyncQueryHandler
 
 
 @pytest.fixture
@@ -87,67 +83,66 @@ async def test_should_raise_HandlerNotFound_error_when_query_handler_is_not_foun
     with pytest.raises(HandlerNotFound):
         await medyator.send(query(1))
 
-# --- Async Tests Start Here ---
+# --- Tests for Async Handlers Start Here ---
 
-# Fixture for Async Command
+# Fixture for Command with an Asynchronous Handler
 @pytest.fixture
-def async_test_command():
-    class MyAsyncCommand(AsyncCommand):
+def command_with_async_handler_fixture():
+    class MyCommandForAsyncHandler(Command): # Inherits from Command
         def __init__(self, value: str):
             self.value = value
 
-    class MyAsyncCommandHandler(AsyncCommandHandler[MyAsyncCommand]):
+    class MyAsyncExecutingCommandHandler(CommandHandler[MyCommandForAsyncHandler]): # Inherits from CommandHandler
         def __init__(self):
             self.handled_value = None
 
-        async def __call__(self, request: MyAsyncCommand) -> None:
+        async def __call__(self, request: MyCommandForAsyncHandler) -> None: # __call__ is async
             await asyncio.sleep(0.01) # Simulate async work
             self.handled_value = request.value
-            print(f"MyAsyncCommandHandler handled: {self.handled_value}")
+            print(f"MyAsyncExecutingCommandHandler handled: {self.handled_value}")
+
+    return MyCommandForAsyncHandler, MyAsyncExecutingCommandHandler
 
 
-    return MyAsyncCommand, MyAsyncCommandHandler
-
-
-async def test_sends_async_command_correctly(async_test_command):
+async def test_sends_command_to_async_handler_correctly(command_with_async_handler_fixture):
     di.clear_cache()
     di.add_medyator()
     medyator = di[Medyator]
 
-    AsyncCmd, AsyncCmdHandlerKlass = async_test_command
-    async_cmd_handler_instance = AsyncCmdHandlerKlass()
-    di[AsyncCmd] = async_cmd_handler_instance # Register handler instance
+    CmdRequiringAsyncHandling, AsyncHandlerKlass = command_with_async_handler_fixture
+    async_handler_instance = AsyncHandlerKlass()
+    di[CmdRequiringAsyncHandling] = async_handler_instance # Register handler instance
 
-    cmd_instance = AsyncCmd("async hello")
+    cmd_instance = CmdRequiringAsyncHandling("async hello command")
     await medyator.send(cmd_instance)
 
-    assert async_cmd_handler_instance.handled_value == "async hello"
+    assert async_handler_instance.handled_value == "async hello command"
 
-# Fixture for Async Query
+# Fixture for Query with an Asynchronous Handler
 @pytest.fixture
-def async_test_query():
-    class MyAsyncQuery(AsyncQuery[str]):
+def query_with_async_handler_fixture():
+    class MyQueryForAsyncHandler(Query[str]): # Inherits from Query
         def __init__(self, value: int):
             self.value = value
 
-    class MyAsyncQueryHandler(AsyncQueryHandler[MyAsyncQuery, str]):
-        async def __call__(self, request: MyAsyncQuery) -> str:
+    class MyAsyncExecutingQueryHandler(QueryHandler[MyQueryForAsyncHandler, str]): # Inherits from QueryHandler
+        async def __call__(self, request: MyQueryForAsyncHandler) -> str: # __call__ is async
             await asyncio.sleep(0.01) # Simulate async work
-            return f"async result: {request.value + 100}"
+            return f"async query result: {request.value + 100}"
 
-    return MyAsyncQuery, MyAsyncQueryHandler
+    return MyQueryForAsyncHandler, MyAsyncExecutingQueryHandler
 
 
-async def test_sends_async_query_correctly(async_test_query):
+async def test_sends_query_to_async_handler_correctly(query_with_async_handler_fixture):
     di.clear_cache()
     di.add_medyator()
     medyator = di[Medyator]
 
-    AsyncQry, AsyncQryHandlerKlass = async_test_query
-    async_qry_handler_instance = AsyncQryHandlerKlass()
-    di[AsyncQry] = async_qry_handler_instance # Register handler instance
+    QryRequiringAsyncHandling, AsyncHandlerKlass = query_with_async_handler_fixture
+    async_handler_instance = AsyncHandlerKlass()
+    di[QryRequiringAsyncHandling] = async_handler_instance # Register handler instance
 
-    qry_instance = AsyncQry(42)
+    qry_instance = QryRequiringAsyncHandling(42)
     result = await medyator.send(qry_instance)
 
-    assert result == "async result: 142"
+    assert result == "async query result: 142"

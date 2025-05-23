@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Awaitable, TypeVar, Union, overload
 
-from .contracts import AsyncCommand, AsyncQuery, Command, Query
+from .contracts import Command, Query # Removed AsyncCommand, AsyncQuery
 
 TResponse = TypeVar("TResponse")
 
@@ -15,16 +15,10 @@ class Sender(ABC):
     @abstractmethod
     async def send(self, request: Query[TResponse]) -> Awaitable[TResponse]: ...
 
-    @overload
-    @abstractmethod
-    async def send(self, request: AsyncCommand) -> Awaitable[None]: ...
-
-    @overload
-    @abstractmethod
-    async def send(self, request: AsyncQuery[TResponse]) -> Awaitable[TResponse]: ...
+    # Removed overloads for AsyncCommand and AsyncQuery
 
     @abstractmethod
     async def send(
-        self, request: Union[Command, Query[TResponse], AsyncCommand, AsyncQuery[TResponse]]
+        self, request: Union[Command, Query[TResponse]] # Removed AsyncCommand, AsyncQuery
     ) -> Union[Awaitable[None], Awaitable[TResponse]]:
         raise NotImplementedError

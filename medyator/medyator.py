@@ -2,8 +2,6 @@ from abc import ABC
 from typing import Awaitable, Callable, Dict, Type, TypeVar, Union, cast, overload
 
 from .contracts import (
-    AsyncCommand,
-    AsyncQuery,
     BaseRequest,
     Command,
     Query,
@@ -11,8 +9,6 @@ from .contracts import (
 )
 from .errors import HandlerNotFound
 from .request_handler import (
-    AsyncCommandHandler,
-    AsyncQueryHandler,
     CommandHandler,
     QueryHandler,
 )
@@ -25,10 +21,10 @@ from .wrappers import (
     RequestHandlerBase,
 )
 
-Handler = Union[QueryHandler, CommandHandler, AsyncQueryHandler, AsyncCommandHandler]
+Handler = Union[QueryHandler, CommandHandler] # Removed AsyncQueryHandler, AsyncCommandHandler
 TResponse = TypeVar("TResponse")
-TCommand = TypeVar("TCommand", bound=Union[Command, AsyncCommand])
-TQuery = TypeVar("TQuery", bound=Union[Query, AsyncQuery])
+TCommand = TypeVar("TCommand", bound=Command) # Removed AsyncCommand from bound
+TQuery = TypeVar("TQuery", bound=Query) # Removed AsyncQuery from bound
 
 
 class MedyatorBase(Sender, ABC):
@@ -55,17 +51,11 @@ class Medyator(MedyatorBase):
     @overload
     async def send(self, request: Query[TResponse]) -> Awaitable[TResponse]: ...
 
-    @overload
-    async def send(self, request: AsyncCommand) -> Awaitable[None]: ...
-
-    @overload
-    async def send(self, request: AsyncQuery[TResponse]) -> Awaitable[TResponse]: ...
-
     async def send(
-        self, request: Union[Command, Query[TResponse], AsyncCommand, AsyncQuery[TResponse]]
+        self, request: Union[Command, Query[TResponse]] # Removed AsyncCommand, AsyncQuery
     ) -> Union[Awaitable[None], Awaitable[TResponse]]:
         try:
-            if isinstance(request, (Command, AsyncCommand)):
+            if isinstance(request, Command): # Removed AsyncCommand
                 handler = cast(
                     CommandHandlerWrapper,
                     self.__handlers.get_or_add(
@@ -76,7 +66,7 @@ class Medyator(MedyatorBase):
                 # Assuming handler.__call__ (the wrapper's call) will be async and return None for commands.
                 await handler(request, self.__service_provider)
                 return None # Becomes Awaitable[None] as send is async def.
-            elif isinstance(request, (Query, AsyncQuery)):
+            elif isinstance(request, Query): # Removed AsyncQuery
                 handler = cast(
                     QueryHandlerWrapper[TResponse],  # type: ignore
                     self.__handlers.get_or_add(

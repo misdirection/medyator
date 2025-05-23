@@ -1,20 +1,18 @@
 import inspect
-from typing import Any, Awaitable, Generic, Protocol, TypeVar, Union, cast
+from typing import Any, Awaitable, Generic, Protocol, TypeVar, cast # Removed Union as it's no longer needed in this file's type hints after simplification
 
 from ..request_handler import (
-    AsyncCommandHandler,
-    AsyncQueryHandler,
     CommandHandler,
     QueryHandler,
-)
+) # Removed AsyncCommandHandler, AsyncQueryHandler
 from ..contracts.service_provider import ServiceProvider
-from ..contracts import AsyncCommand, AsyncQuery, Command, Query
+from ..contracts import Command, Query # Removed AsyncCommand, AsyncQuery
 
 TResponse = TypeVar("TResponse")
-# Updated TQuery to bind to a Union of Query[TResponse] and AsyncQuery[TResponse]
-TQuery = TypeVar("TQuery", bound=Union[Query[TResponse], AsyncQuery[TResponse]])
-# Updated TCommand to bind to a Union of Command and AsyncCommand
-TCommand = TypeVar("TCommand", bound=Union[Command, AsyncCommand])
+# TQuery is a specific type of Query that returns TResponse
+TQuery = TypeVar("TQuery", bound=Query[TResponse])
+# TCommand is a specific type of Command
+TCommand = TypeVar("TCommand", bound=Command)
 
 
 class RequestHandlerBase(Protocol):
@@ -27,7 +25,7 @@ class RequestHandlerBase(Protocol):
 class QueryHandlerWrapper(RequestHandlerBase, Protocol, Generic[TResponse]):
     async def __call__(
         self,
-        request: Union[Query[TResponse], AsyncQuery[TResponse]],
+        request: Query[TResponse], # Removed Union with AsyncQuery
         service_provider: ServiceProvider,
     ) -> Awaitable[TResponse]:
         raise NotImplementedError
@@ -39,8 +37,8 @@ class QueryHandlerWrapperImpl(
     async def __call__(
         self, request: TQuery, service_provider: ServiceProvider
     ) -> Awaitable[TResponse]:
-        actual_handler = cast(
-            Union[QueryHandler[TQuery, TResponse], AsyncQueryHandler[TQuery, TResponse]],
+        actual_handler = cast( # Removed Union with AsyncQueryHandler
+            QueryHandler[TQuery, TResponse],
             service_provider.get(type(request)),
         )
         if inspect.iscoroutinefunction(actual_handler.__call__):
@@ -55,7 +53,7 @@ class QueryHandlerWrapperImpl(
 class CommandHandlerWrapper(RequestHandlerBase, Protocol): # Added Generic[TCommand] if TCommand is used here, but it's not in the __call__ signature directly
     async def __call__(
         self,
-        request: Union[Command, AsyncCommand], # Using Union for broader compatibility at protocol level
+        request: Command, # Removed Union with AsyncCommand
         service_provider: ServiceProvider
     ) -> Awaitable[None]:
         raise NotImplementedError
@@ -65,8 +63,8 @@ class CommandHandlerWrapperImpl(CommandHandlerWrapper, Generic[TCommand]):
     async def __call__(
         self, request: TCommand, service_provider: ServiceProvider
     ) -> Awaitable[None]:
-        actual_handler = cast(
-            Union[CommandHandler[TCommand], AsyncCommandHandler[TCommand]],
+        actual_handler = cast( # Removed Union with AsyncCommandHandler
+            CommandHandler[TCommand],
             service_provider.get(type(request)),
         )
         if inspect.iscoroutinefunction(actual_handler.__call__):
