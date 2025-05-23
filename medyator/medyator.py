@@ -1,9 +1,21 @@
 from abc import ABC
-from typing import Callable, Dict, Type, TypeVar, Union, cast, overload
+from typing import Awaitable, Callable, Dict, Type, TypeVar, Union, cast, overload
 
-from .contracts import BaseRequest, Command, Query, ServiceProvider
+from .contracts import (
+    AsyncCommand,
+    AsyncQuery,
+    BaseRequest,
+    Command,
+    Query,
+    ServiceProvider,
+)
 from .errors import HandlerNotFound
-from .request_handler import CommandHandler, QueryHandler
+from .request_handler import (
+    AsyncCommandHandler,
+    AsyncQueryHandler,
+    CommandHandler,
+    QueryHandler,
+)
 from .sender import Sender
 from .wrappers import (
     CommandHandlerWrapper,
@@ -13,8 +25,10 @@ from .wrappers import (
     RequestHandlerBase,
 )
 
-Handler = Union[QueryHandler, CommandHandler]
+Handler = Union[QueryHandler, CommandHandler, AsyncQueryHandler, AsyncCommandHandler]
 TResponse = TypeVar("TResponse")
+TCommand = TypeVar("TCommand", bound=Union[Command, AsyncCommand])
+TQuery = TypeVar("TQuery", bound=Union[Query, AsyncQuery])
 
 
 class MedyatorBase(Sender, ABC):
@@ -36,32 +50,42 @@ class Medyator(MedyatorBase):
         self.__handlers = HandlerContainer()
 
     @overload
-    def send(self, request: Command) -> None: ...
+    async def send(self, request: Command) -> Awaitable[None]: ...
 
     @overload
-    def send(self, request: Query[TResponse]) -> TResponse: ...
+    async def send(self, request: Query[TResponse]) -> Awaitable[TResponse]: ...
 
-    def send(self, request: Union[Command, Query[TResponse]]) -> Union[None, TResponse]:
+    @overload
+    async def send(self, request: AsyncCommand) -> Awaitable[None]: ...
+
+    @overload
+    async def send(self, request: AsyncQuery[TResponse]) -> Awaitable[TResponse]: ...
+
+    async def send(
+        self, request: Union[Command, Query[TResponse], AsyncCommand, AsyncQuery[TResponse]]
+    ) -> Union[Awaitable[None], Awaitable[TResponse]]:
         try:
-            if isinstance(request, Command):
+            if isinstance(request, (Command, AsyncCommand)):
                 handler = cast(
                     CommandHandlerWrapper,
                     self.__handlers.get_or_add(
                         type(request),
-                        lambda: CommandHandlerWrapperImpl[type(request)](),
+                        lambda: CommandHandlerWrapperImpl[type(request)](),  # type: ignore
                     ),
                 )
-                handler(request, self.__service_provider)
-                return None
-            elif isinstance(request, Query):
+                # Assuming handler.__call__ (the wrapper's call) will be async and return None for commands.
+                await handler(request, self.__service_provider)
+                return None # Becomes Awaitable[None] as send is async def.
+            elif isinstance(request, (Query, AsyncQuery)):
                 handler = cast(
-                    QueryHandlerWrapper[TResponse],
+                    QueryHandlerWrapper[TResponse],  # type: ignore
                     self.__handlers.get_or_add(
                         type(request),
-                        lambda: QueryHandlerWrapperImpl[type(request), TResponse](),
+                        lambda: QueryHandlerWrapperImpl[type(request), TResponse](),  # type: ignore
                     ),
                 )
-                return handler(request, self.__service_provider)
+                # Assuming handler.__call__ (the wrapper's call) will be async and return TResponse for queries.
+                return await handler(request, self.__service_provider)
             else:
                 raise TypeError("Unsupported request type")
         except KeyError:

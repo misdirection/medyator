@@ -1,41 +1,76 @@
-from typing import Any, Generic, Protocol, TypeVar, cast
+import inspect
+from typing import Any, Awaitable, Generic, Protocol, TypeVar, Union, cast
 
-from ..request_handler import QueryHandler, CommandHandler
-
+from ..request_handler import (
+    AsyncCommandHandler,
+    AsyncQueryHandler,
+    CommandHandler,
+    QueryHandler,
+)
 from ..contracts.service_provider import ServiceProvider
-from ..contracts import Command, Query
+from ..contracts import AsyncCommand, AsyncQuery, Command, Query
 
-TQuery = TypeVar("TQuery", bound=Query)
-TCommand = TypeVar("TCommand", bound=Command)
 TResponse = TypeVar("TResponse")
+# Updated TQuery to bind to a Union of Query[TResponse] and AsyncQuery[TResponse]
+TQuery = TypeVar("TQuery", bound=Union[Query[TResponse], AsyncQuery[TResponse]])
+# Updated TCommand to bind to a Union of Command and AsyncCommand
+TCommand = TypeVar("TCommand", bound=Union[Command, AsyncCommand])
 
 
 class RequestHandlerBase(Protocol):
-    def __call__(self, request: Any, service_provider: ServiceProvider) -> Any:
+    async def __call__(
+        self, request: Any, service_provider: ServiceProvider
+    ) -> Awaitable[Any]:
         raise NotImplementedError
 
 
-class QueryHandlerWrapper(RequestHandlerBase, Generic[TResponse]):
-    def __call__(
-        self, request: Query[TResponse], service_provider: ServiceProvider
-    ) -> TResponse:
+class QueryHandlerWrapper(RequestHandlerBase, Protocol, Generic[TResponse]):
+    async def __call__(
+        self,
+        request: Union[Query[TResponse], AsyncQuery[TResponse]],
+        service_provider: ServiceProvider,
+    ) -> Awaitable[TResponse]:
         raise NotImplementedError
 
 
-class QueryHandlerWrapperImpl(QueryHandlerWrapper, Generic[TQuery, TResponse]):
-    def __call__(
-        self, request: Query[TResponse], service_provider: ServiceProvider
-    ) -> TResponse:
-        handler = cast(QueryHandler, service_provider.get(request))
-        return handler(request)
+class QueryHandlerWrapperImpl(
+    QueryHandlerWrapper[TResponse], Generic[TQuery, TResponse]
+):
+    async def __call__(
+        self, request: TQuery, service_provider: ServiceProvider
+    ) -> Awaitable[TResponse]:
+        actual_handler = cast(
+            Union[QueryHandler[TQuery, TResponse], AsyncQueryHandler[TQuery, TResponse]],
+            service_provider.get(type(request)),
+        )
+        if inspect.iscoroutinefunction(actual_handler.__call__):
+            return await actual_handler(request)
+        else:
+            # If actual_handler is sync, its result is TResponse.
+            # Since this wrapper method is async def, Python wraps it in Awaitable[TResponse].
+            return actual_handler(request)
 
 
-class CommandHandlerWrapper:
-    def __call__(self, request: Command, service_provider: ServiceProvider) -> None:
+# Making CommandHandlerWrapper consistent by inheriting RequestHandlerBase
+class CommandHandlerWrapper(RequestHandlerBase, Protocol): # Added Generic[TCommand] if TCommand is used here, but it's not in the __call__ signature directly
+    async def __call__(
+        self,
+        request: Union[Command, AsyncCommand], # Using Union for broader compatibility at protocol level
+        service_provider: ServiceProvider
+    ) -> Awaitable[None]:
         raise NotImplementedError
 
 
 class CommandHandlerWrapperImpl(CommandHandlerWrapper, Generic[TCommand]):
-    def __call__(self, request: Command, service_provider: ServiceProvider) -> None:
-        handler = cast(CommandHandler, service_provider.get(request))
-        return handler(request)
+    async def __call__(
+        self, request: TCommand, service_provider: ServiceProvider
+    ) -> Awaitable[None]:
+        actual_handler = cast(
+            Union[CommandHandler[TCommand], AsyncCommandHandler[TCommand]],
+            service_provider.get(type(request)),
+        )
+        if inspect.iscoroutinefunction(actual_handler.__call__):
+            await actual_handler(request)
+        else:
+            actual_handler(request)
+        return None # Explicit return None, becomes Awaitable[None]

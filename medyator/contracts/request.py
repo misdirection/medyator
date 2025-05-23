@@ -14,3 +14,11 @@ class Command(BaseRequest):
 
 class Query(Generic[TResponse], BaseRequest):
     pass
+
+
+class AsyncCommand(Command):
+    pass
+
+
+class AsyncQuery(Generic[TResponse], Query[TResponse]):
+    pass
