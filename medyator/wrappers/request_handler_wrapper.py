@@ -39,7 +39,7 @@ class QueryHandlerWrapperImpl(
     ) -> Awaitable[TResponse]:
         actual_handler = cast( # Removed Union with AsyncQueryHandler
             QueryHandler[TQuery, TResponse],
-            service_provider.get(type(request)),
+            service_provider.get(request), # Changed from type(request) to request
         )
         if inspect.iscoroutinefunction(actual_handler.__call__):
             return await actual_handler(request)
@@ -65,7 +65,7 @@ class CommandHandlerWrapperImpl(CommandHandlerWrapper, Generic[TCommand]):
     ) -> Awaitable[None]:
         actual_handler = cast( # Removed Union with AsyncCommandHandler
             CommandHandler[TCommand],
-            service_provider.get(type(request)),
+            service_provider.get(request), # Changed from type(request) to request
         )
         if inspect.iscoroutinefunction(actual_handler.__call__):
             await actual_handler(request)
