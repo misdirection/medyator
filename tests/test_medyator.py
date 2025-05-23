@@ -5,11 +5,17 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import medyator.kink  # for extension of Container  # noqa: F401
 import pytest
 from kink import di, inject
-import asyncio
+import asyncio # Added for potential use in async handlers
 from medyator import Medyator
-from medyator.contracts import Command, Query
+from medyator.contracts import (
+    Command,
+    Query,
+) # Removed AsyncCommand, AsyncQuery
 from medyator.errors import HandlerNotFound
-from medyator.request_handler import CommandHandler, QueryHandler
+from medyator.request_handler import (
+    CommandHandler,
+    QueryHandler,
+) # Removed AsyncCommandHandler, AsyncQueryHandler
 
 
 @pytest.fixture
@@ -103,8 +109,8 @@ async def test_sends_command_to_async_handler_correctly(command_with_async_handl
     di.add_medyator()
     medyator = di[Medyator]
 
-    CmdRequiringAsyncHandling, AsyncHandler = command_with_async_handler_fixture
-    async_handler_instance = AsyncHandler()
+    CmdRequiringAsyncHandling, AsyncHandlerKlass = command_with_async_handler_fixture
+    async_handler_instance = AsyncHandlerKlass()
     di[CmdRequiringAsyncHandling] = async_handler_instance # Register handler instance
 
     cmd_instance = CmdRequiringAsyncHandling("async hello command")
@@ -132,8 +138,8 @@ async def test_sends_query_to_async_handler_correctly(query_with_async_handler_f
     di.add_medyator()
     medyator = di[Medyator]
 
-    QryRequiringAsyncHandling, AsyncHandler = query_with_async_handler_fixture
-    async_handler_instance = AsyncHandler()
+    QryRequiringAsyncHandling, AsyncHandlerKlass = query_with_async_handler_fixture
+    async_handler_instance = AsyncHandlerKlass()
     di[QryRequiringAsyncHandling] = async_handler_instance # Register handler instance
 
     qry_instance = QryRequiringAsyncHandling(42)

@@ -1,4 +1,4 @@
-from typing import Union, cast
+from typing import Union, cast # Removed Any, as it's no longer used
 
 from kink import Container
 
@@ -7,13 +7,14 @@ from ..contracts import (
     Command,
     Query,
     ServiceProvider,
-)
+) # Removed AsyncCommand, AsyncQuery
 from ..medyator import Medyator
 from ..request_handler import (
     CommandHandler,
     QueryHandler,
-)
+) # Removed AsyncCommandHandler, AsyncQueryHandler
 
+# Updated Handler type alias to be Union of CommandHandler and QueryHandler
 Handler = Union[CommandHandler, QueryHandler]
 
 

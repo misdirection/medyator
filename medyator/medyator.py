@@ -21,10 +21,10 @@ from .wrappers import (
     RequestHandlerBase,
 )
 
-Handler = Union[QueryHandler, CommandHandler]
+Handler = Union[QueryHandler, CommandHandler] # Removed AsyncQueryHandler, AsyncCommandHandler
 TResponse = TypeVar("TResponse")
-TCommand = TypeVar("TCommand", bound=Command)
-TQuery = TypeVar("TQuery", bound=Query)
+TCommand = TypeVar("TCommand", bound=Command) # Removed AsyncCommand from bound
+TQuery = TypeVar("TQuery", bound=Query) # Removed AsyncQuery from bound
 
 
 class MedyatorBase(Sender, ABC):
@@ -52,10 +52,10 @@ class Medyator(MedyatorBase):
     async def send(self, request: Query[TResponse]) -> Awaitable[TResponse]: ...
 
     async def send(
-        self, request: Union[Command, Query[TResponse]]
+        self, request: Union[Command, Query[TResponse]] # Removed AsyncCommand, AsyncQuery
     ) -> Union[Awaitable[None], Awaitable[TResponse]]:
         try:
-            if isinstance(request, Command):
+            if isinstance(request, Command): # Removed AsyncCommand
                 handler = cast(
                     CommandHandlerWrapper,
                     self.__handlers.get_or_add(
@@ -65,8 +65,8 @@ class Medyator(MedyatorBase):
                 )
                 # Assuming handler.__call__ (the wrapper's call) will be async and return None for commands.
                 await handler(request, self.__service_provider)
-                return None
-            elif isinstance(request, Query):
+                return None # Becomes Awaitable[None] as send is async def.
+            elif isinstance(request, Query): # Removed AsyncQuery
                 handler = cast(
                     QueryHandlerWrapper[TResponse],  # type: ignore
                     self.__handlers.get_or_add(
