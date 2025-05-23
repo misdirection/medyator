@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="Medyator",
-    version="0.3.2",  # Update the version number
+    version="0.4.0",  # Update the version number
     author="Misdirection",
     author_email="misdirection@live.de",
     description="A command and query mediator for Python.",
@@ -19,6 +19,7 @@ setup(
     install_requires=["kink"],
     tests_require=[
         "pytest",
+        "pytest-asyncio"
     ],
     setup_requires=["pytest-runner"],
 )

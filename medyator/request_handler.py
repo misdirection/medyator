@@ -1,6 +1,6 @@
-from typing import Awaitable, Generic, TypeVar # Awaitable is kept for potential use in concrete handler implementations
+from typing import Generic, TypeVar
 
-from .contracts import Command, Query # Removed AsyncCommand, AsyncQuery
+from .contracts import Command, Query 
 
 # Clarification:
 # Concrete implementations of CommandHandler and QueryHandler can define __call__
@@ -8,7 +8,7 @@ from .contracts import Command, Query # Removed AsyncCommand, AsyncQuery
 # The Medyator pipeline will correctly handle either approach.
 
 TCommand = TypeVar("TCommand", bound=Command)
-TQuery = TypeVar("TQuery", bound=Query) # Query already includes TResponse in its definition if needed
+TQuery = TypeVar("TQuery", bound=Query)
 TResponse = TypeVar("TResponse")
 
 
