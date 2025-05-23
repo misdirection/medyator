@@ -5,17 +5,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import medyator.kink  # for extension of Container  # noqa: F401
 import pytest
 from kink import di, inject
-import asyncio # Added for potential use in async handlers
+import asyncio
 from medyator import Medyator
-from medyator.contracts import (
-    Command,
-    Query,
-) # Removed AsyncCommand, AsyncQuery
+from medyator.contracts import Command, Query
 from medyator.errors import HandlerNotFound
-from medyator.request_handler import (
-    CommandHandler,
-    QueryHandler,
-) # Removed AsyncCommandHandler, AsyncQueryHandler
+from medyator.request_handler import CommandHandler, QueryHandler
 
 
 @pytest.fixture
