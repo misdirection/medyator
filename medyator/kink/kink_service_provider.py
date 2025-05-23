@@ -1,4 +1,4 @@
-from typing import Union, cast # Removed Any, as it's no longer used
+from typing import Union, cast
 
 from kink import Container
 
@@ -7,14 +7,13 @@ from ..contracts import (
     Command,
     Query,
     ServiceProvider,
-) # Removed AsyncCommand, AsyncQuery
+)
 from ..medyator import Medyator
 from ..request_handler import (
     CommandHandler,
     QueryHandler,
-) # Removed AsyncCommandHandler, AsyncQueryHandler
+)
 
-# Updated Handler type alias to be Union of CommandHandler and QueryHandler
 Handler = Union[CommandHandler, QueryHandler]
 
 
@@ -22,7 +21,7 @@ class KinkServiceProvider(ServiceProvider):
     def __init__(self, di: Container) -> None:
         self.di = di
 
-    def get(self, request: BaseRequest) -> Handler: # Return type uses the updated Handler alias
+    def get(self, request: BaseRequest) -> Handler:
         # The DI container (kink) is expected to be populated with request types as keys
         # and their corresponding handler instances as values.
         # e.g., container[MyCommand] = MyCommandHandler()

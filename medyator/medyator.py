@@ -21,10 +21,10 @@ from .wrappers import (
     RequestHandlerBase,
 )
 
-Handler = Union[QueryHandler, CommandHandler] # Removed AsyncQueryHandler, AsyncCommandHandler
+Handler = Union[QueryHandler, CommandHandler]
 TResponse = TypeVar("TResponse")
-TCommand = TypeVar("TCommand", bound=Command) # Removed AsyncCommand from bound
-TQuery = TypeVar("TQuery", bound=Query) # Removed AsyncQuery from bound
+TCommand = TypeVar("TCommand", bound=Command)
+TQuery = TypeVar("TQuery", bound=Query)
 
 
 class MedyatorBase(Sender, ABC):
@@ -52,10 +52,10 @@ class Medyator(MedyatorBase):
     async def send(self, request: Query[TResponse]) -> Awaitable[TResponse]: ...
 
     async def send(
-        self, request: Union[Command, Query[TResponse]] # Removed AsyncCommand, AsyncQuery
+        self, request: Union[Command, Query[TResponse]]
     ) -> Union[Awaitable[None], Awaitable[TResponse]]:
         try:
-            if isinstance(request, Command): # Removed AsyncCommand
+            if isinstance(request, Command):
                 handler = cast(
                     CommandHandlerWrapper,
                     self.__handlers.get_or_add(
@@ -63,10 +63,9 @@ class Medyator(MedyatorBase):
                         lambda: CommandHandlerWrapperImpl[type(request)](),  # type: ignore
                     ),
                 )
-                # Assuming handler.__call__ (the wrapper's call) will be async and return None for commands.
                 await handler(request, self.__service_provider)
-                return None # Becomes Awaitable[None] as send is async def.
-            elif isinstance(request, Query): # Removed AsyncQuery
+                return None
+            elif isinstance(request, Query):
                 handler = cast(
                     QueryHandlerWrapper[TResponse],  # type: ignore
                     self.__handlers.get_or_add(
@@ -74,7 +73,6 @@ class Medyator(MedyatorBase):
                         lambda: QueryHandlerWrapperImpl[type(request), TResponse](),  # type: ignore
                     ),
                 )
-                # Assuming handler.__call__ (the wrapper's call) will be async and return TResponse for queries.
                 return await handler(request, self.__service_provider)
             else:
                 raise TypeError("Unsupported request type")
